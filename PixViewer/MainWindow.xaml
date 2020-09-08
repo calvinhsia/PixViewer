@@ -15,6 +15,10 @@
         <StackPanel Orientation="Horizontal">
             <Label Content="Query String"/>
             <local:MyComboBox x:Name="cboQueryString" Width="200" IsEditable="True"/>
+            <CheckBox Content="Pix" IsChecked="{Binding IncludePix}" Margin="10,5,0,0"/>
+            <CheckBox Content="Movies" IsChecked="{Binding IncludeMovies}" Margin="10,5,0,0" />
+            <DatePicker Text="From" SelectedDate="{Binding DtFrom}" Margin="5,0,0,0"/>
+            <DatePicker Text="To" SelectedDate="{Binding DtTo}" Margin="5,0,0,0"/>
             <Button x:Name="btnQuery" Content="_Go" Click="btnQuery_Click"/>
         </StackPanel>
         <DockPanel Grid.Row="1" Name="dp"/>
@@ -26,5 +30,6 @@
             <Button Name="btnNavBack" Content="&lt;" Width="20" Click="btnNav_Click"/>
             <Button Name="btnNavForward" Content=">" Width="20" Click="btnNav_Click" />
         </StackPanel>
+        <Button Grid.Row="2" x:Name="btnPublish" Content="Publish" ToolTip="Publish to OneDrive Results" Click="btnPublish_Click" HorizontalAlignment="Right"/>
     </Grid>
 </Window>

@@ -49,6 +49,8 @@ Watch out for embedded quote marks in notes.
 BROWSE FOR ATC("lila",notes)>0
 COPY TO t.txt csv
 
+    todo: add WholeWord, RegEx query
+
      */
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
@@ -56,6 +58,12 @@ COPY TO t.txt csv
         public DateTime Dtime { get; set; }
         public string Notes { get; set; }
         public string CurPicIndex { get; set; }
+
+
+        public bool IncludePix { get; set; } = true;
+        public bool IncludeMovies { get; set; } = true;
+        public DateTime DtFrom { get; set; } = DateTime.Parse("01/01/2000");
+        public DateTime DtTo { get; set; } = DateTime.Parse("01/01/2020");
 
         string rootPix = @"c:\users\calvinh\OneDrive\Pictures\OldPictures\";
         string targFolder = @"C:\Users\calvinh\OneDrive\QueryResults";
@@ -72,6 +80,7 @@ COPY TO t.txt csv
         public MainWindow()
         {
             InitializeComponent();
+            this.Title = "PixViewer";
             this.WindowState = WindowState.Maximized;
             this.DataContext = this;
             this.Loaded += (o, e) =>
@@ -98,20 +107,13 @@ COPY TO t.txt csv
                         {
                             var data = new PicData()
                             {
-                                fullname = flds[dictFields["fullname"]],
+                                fullname = flds[dictFields["fullname"]].ToLower(),
                                 dtime = DateTime.Parse(flds[dictFields["dtime"]]),
                                 notes = flds[dictFields["notes"]],
                                 rotate = int.Parse(flds[dictFields["rotate"]])
                             };
-                            //                              if (System.IO.Path.GetExtension(data.fullname).ToLower() == ".jpg")
                             {
                                 lstAllPicData.Add(data);
-                                //var targFilename = System.IO.Path.Combine(targFolder, System.IO.Path.GetFileName(data.fullname));
-                                //if (!File.Exists(targFilename))
-                                //{
-                                //    var picFile = System.IO.Path.Combine(rootPix, data.fullname);
-                                //    File.Copy(picFile, targFilename);
-                                //}
                             }
                         }
                     }
@@ -126,24 +128,53 @@ COPY TO t.txt csv
             public DateTime dtime;
             public string notes;
             public int rotate;
+            public bool IsPicture => fullname.EndsWith("jpg");
+            public override string ToString()
+            {
+                return $"{dtime} {notes} {fullname}";
+            }
         }
         void ShowPic(PicData fileData)
         {
             var picFile = System.IO.Path.Combine(rootPix, fileData.fullname);
             if (File.Exists(picFile))
             {
-                var im = new BitmapImage(new Uri(picFile));
-                this.dp.Children.Clear();
-                this.dp.Children.Add(new Image() { Source = im });
-                this.CurPicIndex = $"{curNdx}/{lstFilteredPicData.Count}";
-                this.Filename = fileData.fullname;
-                this.Dtime = fileData.dtime;
-                this.Notes = fileData.notes;
-                RaisePropChanged(nameof(CurPicIndex));
-                RaisePropChanged(nameof(Dtime));
-                RaisePropChanged(nameof(Filename));
-                RaisePropChanged(nameof(Notes));
+                try
+                {
+                    if (fileData.IsPicture)
+                    {
+                        var im = new BitmapImage(new Uri(picFile));
+                        this.dp.Children.Clear();
+                        this.dp.Children.Add(new Image() { Source = im });
+                    }
+                    else
+                    {
+                        var w = new WebBrowser();
+                        w.Navigate(picFile);
+                        this.dp.Children.Clear();
+                        this.dp.Children.Add(w);
+                    }
+                    this.CurPicIndex = $"{curNdx}/{lstFilteredPicData.Count}";
+                    this.Filename = fileData.fullname;
+                    this.Dtime = fileData.dtime;
+                    this.Notes = fileData.notes;
+                    RaisePropChanged(nameof(CurPicIndex));
+                    RaisePropChanged(nameof(Dtime));
+                    RaisePropChanged(nameof(Filename));
+                    RaisePropChanged(nameof(Notes));
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex);
+                }
             }
+        }
+
+        private void ShowError(Exception ex)
+        {
+            var w = new Window();
+            w.Content = ex.ToString();
+            w.ShowDialog();
         }
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
@@ -180,9 +211,35 @@ COPY TO t.txt csv
 
         private void btnQuery_Click(object sender, RoutedEventArgs e)
         {
-            lstFilteredPicData = lstAllPicData.Where(t => t.notes.IndexOf(cboQueryString.Text) >= 0).ToList();
+            lstFilteredPicData = lstAllPicData
+                .Where(t => t.dtime >= DtFrom && t.dtime <= DtTo)
+                .Where(t =>
+            {
+                if (t.notes.IndexOf(cboQueryString.Text, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    return false;
+                }
+                if (t.IsPicture)
+                {
+                    return IncludePix;
+                }
+                return IncludeMovies;
+            }).ToList();
             curNdx = -1;
             btnNavForward.RaiseEvent(new RoutedEventArgs() { RoutedEvent = Button.ClickEvent, Source = this });
+        }
+
+        private void btnPublish_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var data in lstFilteredPicData)
+            {
+                var targFilename = System.IO.Path.Combine(targFolder, System.IO.Path.GetFileName(data.fullname));
+                if (!File.Exists(targFilename))
+                {
+                    var picFile = System.IO.Path.Combine(rootPix, data.fullname);
+                    File.Copy(picFile, targFilename);
+                }
+            }
         }
     }
 }
