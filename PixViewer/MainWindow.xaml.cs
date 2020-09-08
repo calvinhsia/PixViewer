@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -76,6 +77,7 @@ COPY TO t.txt csv
 
         List<PicData> lstFilteredPicData = new List<PicData>();
         int curNdx;
+        private CancellationTokenSource ctsPublish;
 
         public MainWindow()
         {
@@ -229,17 +231,71 @@ COPY TO t.txt csv
             btnNavForward.RaiseEvent(new RoutedEventArgs() { RoutedEvent = Button.ClickEvent, Source = this });
         }
 
-        private void btnPublish_Click(object sender, RoutedEventArgs e)
+        private async void btnPublish_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var data in lstFilteredPicData)
+            this.progBar.Value = 0;
+            this.progBar.Visibility = Visibility.Visible;
+            this.btnCancel.Visibility = Visibility.Visible;
+            this.btnPublish.IsEnabled = false;
+            this.ctsPublish = new CancellationTokenSource();
+            /*
+            await Task.Run(async () =>
             {
-                var targFilename = System.IO.Path.Combine(targFolder, System.IO.Path.GetFileName(data.fullname));
-                if (!File.Exists(targFilename))
+                for (int i = 0; i < 10; i++)
                 {
-                    var picFile = System.IO.Path.Combine(rootPix, data.fullname);
-                    File.Copy(picFile, targFilename);
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    _ = this.progBar.Dispatcher.BeginInvoke(new Action(() =>
+                     {
+                         this.progBar.Value = 10 * i;
+
+                     }));
+                    if (this.ctsPublish.IsCancellationRequested)
+                    {
+                        break;
+                    }
                 }
-            }
+            });
+            /*/
+            int ndx = 0;
+            this.progBar.Maximum = lstFilteredPicData.Count;
+
+            await Task.Run(() =>
+            {
+                foreach (var data in lstFilteredPicData)
+                {
+                    var targFilename = System.IO.Path.Combine(targFolder, System.IO.Path.GetFileName(data.fullname));
+                    if (!File.Exists(targFilename))
+                    {
+                        var picFile = System.IO.Path.Combine(rootPix, data.fullname);
+                        File.Copy(picFile, targFilename);
+                    }
+                    else
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                    }
+                    if (this.ctsPublish.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    ndx++;
+                    _ = this.progBar.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        this.progBar.Value = ndx;
+
+                    }));
+                }
+            });
+            //*/
+            this.progBar.Visibility = Visibility.Hidden;
+            this.btnCancel.Visibility = Visibility.Hidden;
+            this.btnPublish.IsEnabled = true;
+
+        }
+
+        private void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            this.ctsPublish.Cancel();
+            this.btnCancel.Visibility = Visibility.Hidden;
         }
     }
 }

@@ -24,12 +24,17 @@
         <DockPanel Grid.Row="1" Name="dp"/>
         <StackPanel Grid.Row="2" Orientation="Horizontal">
             <TextBox Text="{Binding CurPicIndex }" Width="50"/>
-            <TextBox Text="{Binding Filename}" Width="300"/>
-            <TextBox Text="{Binding Dtime}" Width="150"/>
-            <Label Content="{Binding Notes}" Width="700"/>
+            <TextBox Text="{Binding Notes}" Width="200"/>
+            <TextBox Text="{Binding Filename}" Width="200"/>
+            <TextBox Text="{Binding Dtime}" Width="130"/>
             <Button Name="btnNavBack" Content="&lt;" Width="20" Click="btnNav_Click"/>
             <Button Name="btnNavForward" Content=">" Width="20" Click="btnNav_Click" />
         </StackPanel>
-        <Button Grid.Row="2" x:Name="btnPublish" Content="Publish" ToolTip="Publish to OneDrive Results" Click="btnPublish_Click" HorizontalAlignment="Right"/>
+        <StackPanel Grid.Row="2"  Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="btnCancel" Content="Cancel" Visibility="Hidden" Click="btnCancel_Click"/>
+            <ProgressBar x:Name="progBar" Height="10" Width="100" Visibility="Hidden"/>
+            <Button x:Name="btnPublish" Content="Publish" ToolTip="Publish to OneDrive Results" Click="btnPublish_Click" HorizontalAlignment="Right"/>
+
+        </StackPanel>
     </Grid>
 </Window>
